@@ -64,3 +64,11 @@ scrape_configs:
     static_configs:
       - targets: {{ matrix_prometheus_scraper_hookshot_targets|to_json }}
   {% endif %}
+
+{% if matrix_prometheus_remote_write_enabled %}
+remote_write:
+  - url: {{ matrix_prometheus_remote_write_url }}
+    basic_auth:
+      username: {{ matrix_prometheus_remote_write_basic_auth_username }}
+      password: {{ matrix_prometheus_remote_write_basic_auth_password }}
+{% endif %}
