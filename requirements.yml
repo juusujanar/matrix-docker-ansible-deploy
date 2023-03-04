@@ -1,10 +1,10 @@
 ---
 
 - src: geerlingguy.docker
-  version: 6.0.4
+  version: 6.1.0
 
 - src: git+https://github.com/devture/com.devture.ansible.role.docker_sdk_for_python.git
-  version: 6ba3be490b6f4c6f35ea109aeb8e533fa231b3a5
+  version: 129c8590e106b83e6f4c259649a613c6279e937a
 
 - src: git+https://github.com/devture/com.devture.ansible.role.playbook_help.git
   version: c1f40e82b4d6b072b6f0e885239322bdaaaf554f
@@ -22,7 +22,7 @@
   version: a1bb78d194434b38005f3a9e623bfa4b2c06c7bc
 
 - src: git+https://github.com/devture/com.devture.ansible.role.postgres_backup.git
-  version: 77b1f9ae1aafa31c9078178c1036bf744c99d08b
+  version: 8e9ec48a09284c84704d7a2dce17da35f181574d
 
 - src: git+https://github.com/devture/com.devture.ansible.role.systemd_service_manager.git
   version: 6ccb88ac5fc27e1e70afcd48278ade4b564a9096
@@ -37,13 +37,22 @@
   version: v0.11.1-2
 
 - src: git+https://gitlab.com/etke.cc/roles/backup_borg.git
-  version: v1.2.3-1.7.6-0
+  version: v1.2.3-1.7.8-0
 
 - src: git+https://gitlab.com/etke.cc/roles/grafana.git
-  version: v9.3.6-1
+  version: v9.4.3-0
+
+- src: git+https://gitlab.com/etke.cc/roles/ntfy.git
+  version: v2.1.1-0
+
+- src: git+https://gitlab.com/etke.cc/roles/redis.git
+  version: v7.0.9-0
+
+- src: git+https://gitlab.com/etke.cc/roles/etherpad.git
+  version: v1.8.18-2
 
 - src: git+https://github.com/devture/com.devture.ansible.role.traefik.git
-  version: fb09fd26f877372417d5586f1e79e83f983f0bd6
+  version: v2.9.8-0
 
 - src: git+https://github.com/devture/com.devture.ansible.role.traefik_certs_dumper.git
-  version: e7563caa814e634d2f8deec4a41e970caa1c0ae4
+  version: v2.8.1-0

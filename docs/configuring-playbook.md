@@ -59,9 +59,11 @@ When you're done with all the configuration you'd like to do, continue with [Ins
 
 - [Serving your base domain using this playbook's nginx server](configuring-playbook-base-domain-serving.md) (optional)
 
-- [Configure Nginx](configuring-playbook-nginx.md) (optional, advanced)
+- [Configure the Traefik reverse-proxy](configuring-playbook-traefik.md) (optional, advanced)
 
-- [Using your own webserver, instead of this playbook's nginx proxy](configuring-playbook-own-webserver.md) (optional, advanced)
+- (Deprecated) [Configure the Nginx reverse-proxy](configuring-playbook-nginx.md) (optional, advanced)
+
+- [Using your own webserver, instead of this playbook's default reverse-proxy](configuring-playbook-own-webserver.md) (optional, advanced)
 
 - [Adjusting TURN server configuration](configuring-playbook-turn.md) (optional, advanced)
 
@@ -198,3 +200,5 @@ When you're done with all the configuration you'd like to do, continue with [Ins
 - [Setting up the ntfy push notifications server](configuring-playbook-ntfy.md) (optional)
 
 - [Setting up a Cactus Comments server](configuring-playbook-cactus-comments.md) - a federated comment system built on Matrix (optional)
+
+- [Setting up the Rageshake bug report server](configuring-playbook-rageshake.md) (optional)

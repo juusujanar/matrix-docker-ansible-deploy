@@ -1,3 +1,128 @@
+# 2023-03-02
+
+## The matrix-etherpad role lives independently now
+
+**TLDR**: the `matrix-etherpad` role is now included from [another repository](https://gitlab.com/etke.cc/roles/etherpad). Some variables have been renamed. All functionality remains intact.
+
+You need to **update you roles** (`just roles` or `make roles`) regardless of whether you're using Etherpad or not.
+
+If you're making use of Etherpad via this playbook, you will need to update variable references in your `vars.yml` file:
+
+- Rename `matrix_etherpad_public_endpoint` to `etherpad_path_prefix`
+
+- Replace `matrix_etherpad_mode: dimension` with:
+  - for `matrix-nginx-proxy` users:
+    - `etherpad_nginx_proxy_dimension_integration_enabled: true`
+    - `etherpad_hostname: "{{ matrix_server_fqn_dimension }}"`
+  - for Traefik users:
+    - define your own `etherpad_hostname` and `etherpad_path_prefix` as you see fit
+
+- Rename all other variables:
+  - `matrix_etherpad_docker_image_` -> `matrix_etherpad_container_image_`
+  - `matrix_etherpad_` -> `etherpad_`
+
+Along with this relocation, the new role also:
+
+- supports [self-building](docs/self-building.md), so it should work on `arm32` and `arm64` architectures
+- has native Traefik reverse-proxy support (Etherpad requests no longer go through `matrix-nginx-proxy` when using Traefik)
+
+
+# 2023-02-26
+
+## Traefik is the default reverse-proxy now
+
+**TLDR**: new installations will now default to Traefik as their reverse-proxy. Existing users need to explicitly choose their reverse-proxy type. [Switching to Traefik](#how-do-i-switch-my-existing-setup-to-traefik) is strongly encouraged. `matrix-nginx-proxy` may break over time and will ultimately be removed.
+
+As mentioned 2 weeks ago in [(Backward Compatibility) Reverse-proxy configuration changes and initial Traefik support](#backward-compatibility-reverse-proxy-configuration-changes-and-initial-traefik-support), the playbook is moving to Traefik as its default SSL-terminating reverse-proxy.
+
+Until now, we've been doing the migration gradually and keeping full backward compatibility. New installations were defaulting to `matrix-nginx-proxy` (just like before), while existing installations were allowed to remain on `matrix-nginx-proxy` as well. This makes things very difficult for us, because we need to maintain and think about lots of different setups:
+
+- Traefik managed by the playbook
+- Traefik managed by the user in another way
+- another reverse-proxy on the same host (`127.0.0.1` port exposure)
+- another reverse-proxy on another host (`0.0.0.0` port exposure)
+- `matrix-nginx-proxy` - an `nginx` container managed by the playbook
+- `nginx` webserver operated by the user, running without a container on the same server
+
+Each change we do and each new feature that comes in needs to support all these different ways of reverse-proxying. Because `matrix-nginx-proxy` was the default and pretty much everyone was (and still is) using it, means that new PRs also come with `matrix-nginx-proxy` as their main focus and Traefik as an afterthought, which means we need to spend hours fixing up Traefik support.
+
+We can't spend all this time maintaining so many different configurations anymore. Traefik support has been an option for 2 weeks and lots of people have  already migrated their server and have tested things out. Traefik is what we use and preferentially test for.
+
+It's time for the **next step in our migration process** to Traefik and elimination of `matrix-nginx-proxy`:
+
+- Traefik is now the default reverse-proxy for new installations
+- All existing users need to explicitly choose their reverse-proxy type by defining the `matrix_playbook_reverse_proxy_type` variable in their `vars.yml` configuration file. We strongly encourage existing users to [switch the Traefik](#how-to-switch-an-existing-setup-to-traefik), as the nginx setup is bound to become more and more broken over time until it's ultimately removed
+
+### How do I switch my existing setup to Traefik?
+
+**For users who are on `matrix-nginx-proxy`** (the default reverse-proxy provided by the playbook), switching to Traefik can happen with a simple configuration change. Follow this section from 2 weeks ago: [How do I explicitly switch to Traefik right now?](#how-do-i-explicitly-switch-to-traefik-right-now).
+
+If you experience trouble:
+
+1. Follow [How do I remain on matrix-nginx-proxy?](#how-do-i-remain-on-matrix-nginx-proxy) to bring your server back online using the old reverse-proxy
+2. Ask for help in our [support channels](README.md#support)
+3. Try switching to Traefik again later
+
+**For users with a more special reverse-proxying setup** (another nginx server, Apache, Caddy, etc.), the migration may not be so smooth. Follow the [Using your own webserver](docs/configuring-playbook-own-webserver.md) guide. Ideally, your custom reverse-proxy will be configured in such a way that it **fronts the Traefik reverse-proxy** provided by the playbook. Other means of reverse-proxying are more fragile and may be deprecated in the future.
+
+### I already use my own Traefik server. How do I plug that in?
+
+See the [Traefik managed by the playbook](docs/configuring-playbook-own-webserver.md#traefik-managed-by-the-playbook) section.
+
+### Why is matrix-nginx-proxy used even after switching to Traefik?
+
+This playbook manages many different services. All these services were initially integrated with `matrix-nginx-proxy`.
+
+While we migrate all these components to have native Traefik support, some still go through nginx internally (Traefik -> local `matrix-nginx-proxy` -> component).
+As time goes on, internal reliance on `matrix-nginx-proxy` will gradually decrease until it's completely removed.
+
+### How do I remain on matrix-nginx-proxy?
+
+Most new work and testing targets Traefik, so remaining on nginx is **not** "the good old stable" option, but rather the "still available, but largely untested and likely to be broken very soon" option.
+
+To proceed regardless of this warning, add `matrix_playbook_reverse_proxy_type: playbook-managed-nginx` to your configuration.
+
+At some point in the **near** future (days, or even weeks at most), we hope to completely get rid of `matrix-nginx-proxy` (or break it enough to make it unusable), so you **will soon be forced to migrate** anyway. Plan your migration accordingly.
+
+### How do I keep using my own other reverse-proxy?
+
+We recommend that you follow the guide for [Fronting the integrated reverse-proxy webserver with another reverse-proxy](docs/configuring-playbook-own-webserver.md#fronting-the-integrated-reverse-proxy-webserver-with-another-reverse-proxy).
+
+
+# 2023-02-25
+
+## Rageshake support
+
+Thanks to [Benjamin Kampmann](https://github.com/gnunicorn), the playbook can now install and configure the [Rageshake](https://github.com/matrix-org/rageshake) bug report server.
+
+Additional details are available in [Setting up Rageshake](docs/configuring-playbook-rageshake.md).
+
+
+# 2023-02-17
+
+## Synapse templates customization support
+
+The playbook can now help you customize Synapse's templates.
+
+Additional details are available in the [Customizing templates](docs/configuring-playbook-synapse.md#customizing-templates) section of our Synapse documentation.
+
+## The matrix-redis role lives independently now
+
+**TLDR**: the `matrix-redis` role is now included from another repository. Some variables have been renamed. All functionality remains intact.
+
+The `matrix-redis` role (which configures [Redis](https://redis.io/)) has been extracted from the playbook and now lives in its [own repository](https://gitlab.com/etke.cc/roles/redis). This makes it possible to easily use it in other Ansible playbooks.
+
+You need to **update you roles** (`just roles` or `make roles`) regardless of whether you're enabling Ntfy or not. If you're making use of Ntfy via this playbook, you will need to update variable references in your `vars.yml` file (`matrix_redis_` -> `redis_`).
+
+## The matrix-ntfy role lives independently now
+
+**TLDR**: the `matrix-ntfy` role is now included from another repository. Some variables have been renamed. All functionality remains intact.
+
+The `matrix-ntfy` role (which configures [Ntfy](https://ntfy.sh/)) has been extracted from the playbook and now lives in its [own repository](https://gitlab.com/etke.cc/roles/ntfy). This makes it possible to easily use it in other Ansible playbooks.
+
+You need to **update you roles** (`just roles` or `make roles`) regardless of whether you're enabling Ntfy or not. If you're making use of Ntfy via this playbook, you will need to update variable references in your `vars.yml` file (`matrix_ntfy_` -> `ntfy_`).
+
+
 # 2023-02-15
 
 ## The matrix-grafana role lives independently now
@@ -93,7 +218,7 @@ Unless we have some regression, **existing `matrix-nginx-proxy` users should be 
 ```yaml
 matrix_playbook_reverse_proxy_type: playbook-managed-traefik
 
-devture_traefik_ssl_email_address: YOUR_EMAIL_ADDRESS
+devture_traefik_config_certificatesResolvers_acme_email: YOUR_EMAIL_ADDRESS
 ```
 
 You may still need to keep certain old `matrix_nginx_proxy_*` variables (like `matrix_nginx_proxy_base_domain_serving_enabled`), even when using Traefik. For now, we recommend keeping all `matrix_nginx_proxy_*` variables just in case. In the future, reliance on `matrix-nginx-proxy` will be removed.
@@ -387,11 +512,11 @@ Various services (like Dimension, etc.) still talk to Synapse via `matrix-nginx-
 
 Until now, [Etherpad](https://etherpad.org/) (which [the playbook could install for you](docs/configuring-playbook-etherpad.md)) required the [Dimension integration manager](docs/configuring-playbook-dimension.md) to also be installed, because Etherpad was hosted on the Dimension domain (at `dimension.DOMAIN/etherpad`).
 
-From now on, Etherpad can be installed in `standalone` mode on `etherpad.DOMAIN` and used even without Dimension. This is much more versatile, so the playbook now defaults to this new mode (`matrix_etherpad_mode: standalone`).
+From now on, Etherpad can be installed in `standalone` mode on `etherpad.DOMAIN` and used even without Dimension. This is much more versatile, so the playbook now defaults to this new mode (`etherpad_mode: standalone`).
 
 If you've already got both Etherpad and Dimension in use you could:
 
-- **either** keep hosting Etherpad under the Dimension domain by adding `matrix_etherpad_mode: dimension` to your `vars.yml` file. All your existing room widgets will continue working at the same URLs and no other changes will be necessary.
+- **either** keep hosting Etherpad under the Dimension domain by adding `etherpad_mode: dimension` to your `vars.yml` file. All your existing room widgets will continue working at the same URLs and no other changes will be necessary.
 
 - **or**, you could change to hosting Etherpad separately on `etherpad.DOMAIN`. You will need to [configure a DNS record](docs/configuring-dns.md) for this new domain. You will also need to reconfigure Dimension to use the new pad URLs (`https://etherpad.DOMAIN/...`) going forward (refer to our [configuring Etherpad documentation](docs/configuring-playbook-etherpad.md)). All your existing room widgets (which still use `https://dimension.DOMAIN/etherpad/...`) will break as Etherpad is not hosted there anymore. You will need to re-add them or to consider not using `standalone` mode
 
