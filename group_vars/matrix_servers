@@ -19,23 +19,9 @@
 # Also see `devture_docker_sdk_for_python_installation_enabled`.
 matrix_playbook_docker_installation_enabled: true
 
-# Controls whether to run the Traefik role or not
-# See the `com.devture.ansible.role.traefik` section below for role configuration.
-#
-# There's a difference between `devture_traefik_enabled` and `matrix_playbook_traefik_role_enabled`.
-# `devture_traefik_enabled` controls what the Traefik role would do - when not enabled, it will run uninstall tasks, etc.
-# `matrix_playbook_traefik_role_enabled` controls if the Traefik role would even run at all.
-#
-# Sometimes, you're installing Traefik via a different (related playbook) which uses the same role.
-# In such cases, you'd like to disable the role in this playbook from bothering with Traefik at all (`matrix_playbook_traefik_role_enabled: false`).
-# If you used `devture_traefik_enabled: false` + `matrix_playbook_traefik_role_enabled: true` instead, you'd see the Treafik role here
-# try to delete Traefik data (`/devture-traefik`) installed by the other playbook.
-matrix_playbook_traefik_role_enabled: "{{ matrix_playbook_reverse_proxy_type != 'other-traefik-container' }}"
-
 # Controls whether to attach Traefik labels to services.
-# This is separate from `devture_traefik_enabled` and `matrix_playbook_traefik_role_enabled`,
-# because you may wish to disable Traefik installation by the playbook, yet still use Traefik
-# installed in another way.
+# This is separate from `devture_traefik_enabled`, because you may wish to disable Traefik installation by the playbook,
+# yet still use Traefik installed in another way.
 matrix_playbook_traefik_labels_enabled: "{{ matrix_playbook_reverse_proxy_type in ['playbook-managed-traefik', 'other-traefik-container'] }}"
 
 # Controls the additional network that reverse-proxyable services will be connected to.
@@ -344,6 +330,8 @@ devture_systemd_service_manager_services_list_auto: |
     +
     ([{'name': 'matrix-registration.service', 'priority': 4000, 'groups': ['matrix', 'registration']}] if matrix_registration_enabled else [])
     +
+    ([{'name': 'matrix-sliding-sync.service', 'priority': 4000, 'groups': ['matrix', 'sliding-sync']}] if matrix_sliding_sync_enabled else [])
+    +
     ([{'name': 'matrix-sygnal.service', 'priority': 800, 'groups': ['matrix', 'sygnal']}] if matrix_sygnal_enabled else [])
     +
     ([{'name': 'matrix-goofys.service', 'priority': 800, 'groups': ['matrix', 'goofys']}] if matrix_s3_media_store_enabled else [])
@@ -356,7 +344,9 @@ devture_systemd_service_manager_services_list_auto: |
     +
     ([{'name': 'matrix-user-verification-service.service', 'priority': 800, 'groups': ['matrix', 'matrix-user-verification-service']}] if matrix_user_verification_service_enabled else [])
     +
-    ([{'name': 'devture-traefik.service', 'priority': 3000, 'groups': ['matrix', 'traefik', 'reverse-proxies']}] if devture_traefik_enabled else [])
+    ([{'name': (devture_container_socket_proxy_identifier + '.service'), 'priority': 2900, 'groups': ['matrix', 'reverse-proxies', 'container-socket-proxy']}] if devture_container_socket_proxy_enabled else [])
+    +
+    ([{'name': (devture_traefik_identifier + '.service'), 'priority': 3000, 'groups': ['matrix', 'traefik', 'reverse-proxies']}] if devture_traefik_enabled else [])
     +
     ([{'name': (devture_traefik_certs_dumper_identifier + '.service'), 'priority': 3500, 'groups': ['matrix', 'traefik-certs-dumper']}] if devture_traefik_certs_dumper_enabled else [])
   }}
@@ -2624,6 +2614,8 @@ matrix_nginx_proxy_systemd_wanted_services_list: |
     +
     (['matrix-jitsi.service'] if matrix_jitsi_enabled else [])
     +
+    (['matrix-sliding-sync-proxy.service'] if matrix_sliding_sync_enabled else [])
+    +
     (['matrix-bot-go-neb.service'] if matrix_bot_go_neb_enabled else [])
     +
     ([etherpad_identifier + '.service'] if etherpad_enabled else [])
@@ -2756,6 +2748,12 @@ devture_postgres_managed_databases_auto: |
       'username': matrix_dendrite_database_user,
       'password': matrix_dendrite_database_password,
     }] if (matrix_dendrite_enabled and matrix_dendrite_database_hostname == devture_postgres_connection_hostname) else [])
+    +
+    ([{
+      'name': matrix_sliding_sync_database_name,
+      'username': matrix_sliding_sync_database_username,
+      'password': matrix_sliding_sync_database_password,
+    }] if (matrix_sliding_sync_enabled) else [])
     +
     ([{
       'name': matrix_ma1sd_database_name,
@@ -3651,6 +3649,63 @@ matrix_registration_database_password: "{{ '%s' | format(matrix_homeserver_gener
 ######################################################################
 
 
+
+######################################################################
+#
+# matrix-sliding-sync
+#
+######################################################################
+
+# We don't enable the sliding sync proxy by default.
+matrix_sliding_sync_enabled: false
+
+matrix_sliding_sync_scheme: "{{ 'https' if matrix_playbook_ssl_enabled else 'http' }}"
+
+matrix_sliding_sync_hostname: "{{ matrix_server_fqn_matrix }}"
+
+matrix_sliding_sync_path_prefix: /sliding-sync
+
+matrix_sliding_sync_container_image_self_build: "{{ matrix_architecture not in ['amd64'] }}"
+
+matrix_sliding_sync_container_additional_networks: |
+  {{
+    (
+      ([matrix_playbook_reverse_proxyable_services_additional_network] if matrix_playbook_reverse_proxyable_services_additional_network else [])
+      +
+      ([matrix_nginx_proxy_container_network] if matrix_nginx_proxy_enabled and matrix_nginx_proxy_container_network != matrix_sliding_sync_container_network else [])
+      +
+      ([devture_postgres_container_network] if devture_postgres_enabled and devture_postgres_container_network != matrix_sliding_sync_container_network else [])
+    ) | unique
+  }}
+
+matrix_sliding_sync_container_labels_traefik_enabled: "{{ matrix_playbook_reverse_proxy_type in ['playbook-managed-traefik', 'other-traefik-container'] }}"
+matrix_sliding_sync_container_labels_traefik_docker_network: "{{ matrix_playbook_reverse_proxyable_services_additional_network }}"
+matrix_sliding_sync_container_labels_traefik_entrypoints: "{{ devture_traefik_entrypoint_primary }}"
+matrix_sliding_sync_container_labels_traefik_tls_certResolver: "{{ devture_traefik_certResolver_primary }}"
+
+matrix_sliding_sync_systemd_required_services_list: |
+  {{
+    ['docker.service']
+    +
+    ['matrix-' + matrix_homeserver_implementation + '.service']
+    +
+    ([devture_postgres_identifier ~ '.service'] if devture_postgres_enabled else [])
+    +
+    (['matrix-nginx-proxy.service'] if matrix_nginx_proxy_enabled else [])
+  }}
+
+matrix_sliding_sync_environment_variable_syncv3_secret: "{{ '%s' | format(matrix_homeserver_generic_secret_key) | password_hash('sha512', 'ss.secret', rounds=655555) | to_uuid }}"
+
+matrix_sliding_sync_database_hostname: "{{ devture_postgres_connection_hostname if devture_postgres_enabled else '' }}"
+matrix_sliding_sync_database_password: "{{ '%s' | format(matrix_homeserver_generic_secret_key) | password_hash('sha512', 'ss.db', rounds=655555) | to_uuid }}"
+
+######################################################################
+#
+# /matrix-sliding-sync
+#
+######################################################################
+
+
 ######################################################################
 #
 # matrix-dendrite
@@ -3823,13 +3878,40 @@ matrix_user_verification_service_uvs_auth_token: "{{ '%s' | format(matrix_homese
 
 ########################################################################
 #                                                                      #
+# com.devture.ansible.role.container_socket_proxy                      #
+#                                                                      #
+########################################################################
+
+devture_container_socket_proxy_enabled: "{{ matrix_playbook_reverse_proxy_type == 'playbook-managed-traefik' }}"
+
+devture_container_socket_proxy_identifier: matrix-container-socket-proxy
+
+devture_container_socket_proxy_base_path: "{{ matrix_base_data_path }}/container-socket-proxy"
+
+devture_container_socket_proxy_uid: "{{ matrix_user_uid }}"
+devture_container_socket_proxy_gid: "{{ matrix_user_gid }}"
+
+# Traefik requires read access to the containers APIs to do its job
+devture_container_socket_proxy_api_containers_enabled: true
+
+########################################################################
+#                                                                      #
+# /com.devture.ansible.role.container_socket_proxy                     #
+#                                                                      #
+########################################################################
+
+
+########################################################################
+#                                                                      #
 # com.devture.ansible.role.traefik                                     #
 #                                                                      #
 ########################################################################
 
-# To completely disable the Traefik role from running, use `matrix_playbook_traefik_role_enabled: false`.
-# See the comment there for more details about why we have both `devture_traefik_enabled` and `matrix_playbook_traefik_role_enabled`.
 devture_traefik_enabled: "{{ matrix_playbook_reverse_proxy_type == 'playbook-managed-traefik' }}"
+
+devture_traefik_identifier: matrix-traefik
+
+devture_traefik_base_path: "{{ matrix_base_data_path }}/traefik"
 
 devture_traefik_uid: "{{ matrix_user_uid }}"
 devture_traefik_gid: "{{ matrix_user_gid }}"
@@ -3841,6 +3923,20 @@ devture_traefik_additional_entrypoints_auto:
     config: {}
 
 devture_traefik_additional_domains_to_obtain_certificates_for: "{{ matrix_ssl_additional_domains_to_obtain_certificates_for }}"
+
+devture_traefik_config_providers_docker_endpoint: "{{ devture_container_socket_proxy_endpoint if devture_container_socket_proxy_enabled else 'unix:///var/run/docker.sock' }}"
+
+devture_traefik_container_additional_networks: |
+  {{
+    ([devture_container_socket_proxy_container_network] if devture_container_socket_proxy_enabled else [])
+  }}
+
+devture_traefik_systemd_required_services_list: |
+  {{
+    (['docker.service'])
+    +
+    ([devture_container_socket_proxy_identifier + '.service'] if devture_container_socket_proxy_enabled else [])
+  }}
 
 ########################################################################
 #                                                                      #
