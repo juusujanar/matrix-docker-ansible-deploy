@@ -1,3 +1,68 @@
+# 2023-04-03
+
+## The matrix-jitsi role lives independently now
+
+**TLDR**: the `matrix-jitsi` role is now included from the [ansible-role-jitsi](https://github.com/mother-of-all-self-hosting/ansible-role-jitsi) repository, part of the [MASH playbook](https://github.com/mother-of-all-self-hosting/mash-playbook). Some variables have been renamed. All functionality remains intact.
+
+The `matrix-jitsi` role has been relocated in its own repository, part of the [MASH playbook](https://github.com/mother-of-all-self-hosting/mash-playbook) project - an Ansible playbook for self-hosting [a growing list of FOSS software](https://github.com/mother-of-all-self-hosting/mash-playbook/blob/main/docs/supported-services.md). If hosting a Jitsi stack on the Matrix server itself did not stand right with you or you always wanted to host most stuff, you can now use this new playbook to do so.
+
+As part of the extraction process of this role out of the Matrix playbook, a few other things improved:
+
+- **native Traefik support** has been added
+- **support for hosting under a subpath** has been added, although it suffers from a few minor issues listed [here](https://github.com/mother-of-all-self-hosting/mash-playbook/blob/main/docs/services/jitsi.md#url)
+
+You need to **update your roles** (`just roles` or `make roles`) regardless of whether you're using Jitsi or not.
+
+If you're making use of Jitsi via this playbook, you will need to update variable references in your `vars.yml` file:
+
+  - `matrix_jitsi_*_docker_image_` -> `matrix_jitsi_*_container_image_`
+  - `matrix_jitsi_` -> `jitsi_`
+  - some other internal variables have changed, but the playbook will tell you about them
+
+# 2023-03-22
+
+## ntfy Web App is disabled by default
+
+ntfy provides a web app, which is now disabled by default, because it may be unknown to and unused by most users of this playbook. You can enable it by setting `ntfy_web_root: "app"` (see [ntfy documentation](docs/configuring-playbook-ntfy.md)).
+
+This change was already applied a while before this entry, but as some users were reporting the missing web app, this entry was added (see [#2529](https://github.com/spantaleev/matrix-docker-ansible-deploy/issues/2529)).
+
+
+# 2023-03-21
+
+## The matrix-prometheus role lives independently now
+
+**TLDR**: the `matrix-prometheus` role is now included from the [ansible-role-prometheus](https://github.com/mother-of-all-self-hosting/ansible-role-prometheus) repository, part of the [MASH playbook](https://github.com/mother-of-all-self-hosting/mash-playbook). Some variables have been renamed. All functionality remains intact.
+
+The `matrix-prometheus` role has been relocated in its own repository, part of the [MASH playbook](https://github.com/mother-of-all-self-hosting/mash-playbook) project - an Ansible playbook for self-hosting [a growing list of FOSS software](https://github.com/mother-of-all-self-hosting/mash-playbook/blob/main/docs/supported-services.md). If hosting a Prometheus stack on the Matrix server itself did not stand right with you or you always wanted to host most stuff, you can now use this new playbook to do so.
+
+Extracting the Prometheus role out of this Matrix playbook required huge internal refactoring to the way the Prometheus configuration (scraping jobs) is generated. If you notice any breakage after upgrading, let us know.
+
+You need to **update your roles** (`just roles` or `make roles`) regardless of whether you're using Prometheus or not.
+
+If you're making use of Prometheus via this playbook, you will need to update variable references in your `vars.yml` file:
+
+  - `matrix_prometheus_docker_image_` -> `matrix_prometheus_container_image_`
+  - `matrix_prometheus_` -> `prometheus_`
+  - some other internal variables have changed, but the playbook will tell you about them
+
+
+# 2023-03-12
+
+## synapse-auto-compressor support
+
+Thanks to [Aine](https://gitlab.com/etke.cc) of [etke.cc](https://etke.cc/), the playbook can now set up [rust-synapse-compress-state](https://github.com/matrix-org/rust-synapse-compress-state)'s `synapse_auto_compressor` tool to run periodically.
+
+If enabled, `synapse_auto_compressor` runs on a schedule and compresses your Synapse database's `state_groups` table. It was possible to run `rust-synapse-compress-state` manually via the playbook even before - see [Compressing state with rust-synapse-compress-state](docs/maintenance-synapse.md#compressing-state-with-rust-synapse-compress-state). However, using `synapse_auto_compressor` is better, because:
+
+- it runs on a more up-to-date version of `rust-synapse-compress-state`
+- it's a set-it-and-forget-it tool that you can enable and never have to deal with manual compression anymore
+
+This tool needs to be enabled manually, for now. In the future, we're considering enabling it by default for all Synapse installations.
+
+See our [Setting up synapse-auto-compressor](docs/configuring-playbook-synapse-auto-compressor.md) documentation to get started.
+
+
 # 2023-03-07
 
 ## Sliding Sync Proxy (Element X) support
@@ -15,7 +80,7 @@ To get started, see our [Setting up Sliding Sync Proxy](docs/configuring-playboo
 
 **TLDR**: the `matrix-etherpad` role is now included from [another repository](https://gitlab.com/etke.cc/roles/etherpad). Some variables have been renamed. All functionality remains intact.
 
-You need to **update you roles** (`just roles` or `make roles`) regardless of whether you're using Etherpad or not.
+You need to **update your roles** (`just roles` or `make roles`) regardless of whether you're using Etherpad or not.
 
 If you're making use of Etherpad via this playbook, you will need to update variable references in your `vars.yml` file:
 
@@ -123,7 +188,7 @@ Additional details are available in the [Customizing templates](docs/configuring
 
 The `matrix-redis` role (which configures [Redis](https://redis.io/)) has been extracted from the playbook and now lives in its [own repository](https://gitlab.com/etke.cc/roles/redis). This makes it possible to easily use it in other Ansible playbooks.
 
-You need to **update you roles** (`just roles` or `make roles`) regardless of whether you're enabling Ntfy or not. If you're making use of Ntfy via this playbook, you will need to update variable references in your `vars.yml` file (`matrix_redis_` -> `redis_`).
+You need to **update your roles** (`just roles` or `make roles`) regardless of whether you're enabling Ntfy or not. If you're making use of Ntfy via this playbook, you will need to update variable references in your `vars.yml` file (`matrix_redis_` -> `redis_`).
 
 ## The matrix-ntfy role lives independently now
 
@@ -131,7 +196,7 @@ You need to **update you roles** (`just roles` or `make roles`) regardless of wh
 
 The `matrix-ntfy` role (which configures [Ntfy](https://ntfy.sh/)) has been extracted from the playbook and now lives in its [own repository](https://gitlab.com/etke.cc/roles/ntfy). This makes it possible to easily use it in other Ansible playbooks.
 
-You need to **update you roles** (`just roles` or `make roles`) regardless of whether you're enabling Ntfy or not. If you're making use of Ntfy via this playbook, you will need to update variable references in your `vars.yml` file (`matrix_ntfy_` -> `ntfy_`).
+You need to **update your roles** (`just roles` or `make roles`) regardless of whether you're enabling Ntfy or not. If you're making use of Ntfy via this playbook, you will need to update variable references in your `vars.yml` file (`matrix_ntfy_` -> `ntfy_`).
 
 
 # 2023-02-15
@@ -142,7 +207,7 @@ You need to **update you roles** (`just roles` or `make roles`) regardless of wh
 
 The `matrix-grafana` role (which configures [Grafana](docs/configuring-playbook-prometheus-grafana.md)) has been extracted from the playbook and now lives in its [own repository](https://gitlab.com/etke.cc/roles/grafana). This makes it possible to easily use it in other Ansible playbooks.
 
-You need to **update you roles** (`just roles` or `make roles`) regardless of whether you're enabling Grafana or not. If you're making use of Grafana via this playbook, you will need to update variable references in your `vars.yml` file (`matrix_grafana_` -> `grafana_`).
+You need to **update your roles** (`just roles` or `make roles`) regardless of whether you're enabling Grafana or not. If you're making use of Grafana via this playbook, you will need to update variable references in your `vars.yml` file (`matrix_grafana_` -> `grafana_`).
 
 
 # 2023-02-13
@@ -153,7 +218,7 @@ You need to **update you roles** (`just roles` or `make roles`) regardless of wh
 
 Thanks to [moan0s](https://github.com/moan0s), the `matrix-backup-borg` role (which configures [Borg backups](docs/configuring-playbook-backup-borg.md)) has been extracted from the playbook and now lives in its [own repository](https://gitlab.com/etke.cc/roles/backup_borg). This makes it possible to easily use it in other Ansible playbooks and will become part of [nextcloud-docker-ansible-deploy](https://github.com/spantaleev/nextcloud-docker-ansible-deploy) soon.
 
-You need to **update you roles** (`just roles` or `make roles`) regardless of whether you're enabling Borg backup functionality or not. If you're making use of Borg backups via this playbook, you will need to update variable references in your `vars.yml` file (`matrix_backup_borg_` -> `backup_borg_`).
+You need to **update your roles** (`just roles` or `make roles`) regardless of whether you're enabling Borg backup functionality or not. If you're making use of Borg backups via this playbook, you will need to update variable references in your `vars.yml` file (`matrix_backup_borg_` -> `backup_borg_`).
 
 
 # 2023-02-12
@@ -814,7 +879,7 @@ See our [Setting up the ntfy push notifications server](docs/configuring-playboo
 
 **If you are using the [Hookshot bridge](docs/configuring-playbook-bridge-hookshot.md)**, you may find that:
 1. **Metrics may not be enabled by default anymore**:
-  - If Prometheus is enabled (`matrix_prometheus_enabled: true`), then Hookshot metrics will be enabled automatically (`matrix_hookshot_metrics_enabled: true`). These metrics will be collected from the local (in-container) Prometheus over the container network.
+  - If Prometheus is enabled (`prometheus_enabled: true`), then Hookshot metrics will be enabled automatically (`matrix_hookshot_metrics_enabled: true`). These metrics will be collected from the local (in-container) Prometheus over the container network.
   - **If Prometheus is not enabled** (you are either not using Prometheus or are using an external one), **Hookshot metrics will not be enabled by default anymore**. Feel free to enable them by setting `matrix_hookshot_metrics_enabled: true`. Also, see below.
 2. When metrics are meant to be **consumed by an external Prometheus server**, `matrix_hookshot_metrics_proxying_enabled` needs to be set to `true`, so that metrics would be exposed (proxied) "publicly" on `https://matrix.DOMAIN/metrics/hookshot`. To make use of this, you'll also need to enable the new `https://matrix.DOMAIN/metrics/*` endpoints mentioned above, using `matrix_nginx_proxy_proxy_matrix_metrics_enabled`. Learn more in our [Collecting metrics to an external Prometheus server](docs/configuring-playbook-prometheus-grafana.md#collecting-metrics-to-an-external-prometheus-server) documentation.
 3. **We've changed the URL we're exposing Hookshot metrics at** for external Prometheus servers. Until now, you were advised to consume Hookshot metrics from `https://stats.DOMAIN/hookshot/metrics` (working in conjunction with `matrix_nginx_proxy_proxy_synapse_metrics`). From now on, **this no longer works**. As described above, you need to start consuming metrics from `https://matrix.DOMAIN/metrics/hookshot`.
@@ -1512,7 +1577,7 @@ People who have [fine-tuned Jitsi](docs/configuring-playbook-jitsi.md#optional-f
 
 The next time you run the playbook [installation](docs/installing.md) command, our validation logic will tell you if you're using some variables like that and will recommend a migration path for each one.
 
-Additionally, we've recently disabled transcriptions (`matrix_jitsi_enable_transcriptions: false`) and recording (`matrix_jitsi_enable_recording: false`) by default. These features did not work anyway, because we don't install the required dependencies for them (Jigasi and Jibri, respectively). If you've been somehow pointing your Jitsi installation to some manually installed Jigasi/Jibri service, you may need to toggle these flags back to enabled to have transcriptions and recordings working.
+Additionally, we've recently disabled transcriptions (`jitsi_enable_transcriptions: false`) and recording (`jitsi_enable_recording: false`) by default. These features did not work anyway, because we don't install the required dependencies for them (Jigasi and Jibri, respectively). If you've been somehow pointing your Jitsi installation to some manually installed Jigasi/Jibri service, you may need to toggle these flags back to enabled to have transcriptions and recordings working.
 
 
 # 2020-11-23
