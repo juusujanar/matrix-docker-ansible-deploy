@@ -4,7 +4,7 @@
 
 matrix_synapse_enabled: true
 
-matrix_synapse_version: v1.91.0
+matrix_synapse_version: v1.92.3
 
 matrix_synapse_username: ''
 matrix_synapse_uid: ''
@@ -445,11 +445,14 @@ matrix_synapse_additional_loggers_auto:
   # Related to:
   # - https://github.com/matrix-org/synapse/issues/16208
   # - https://github.com/matrix-org/synapse/issues/16101
+  # - https://github.com/spantaleev/matrix-docker-ansible-deploy/issues/2853
   - name: synapse.http.matrixfederationclient
     level: CRITICAL
   - name: synapse.federation.sender.per_destination_queue
     level: CRITICAL
   - name: synapse.handlers.device
+    level: CRITICAL
+  - name: synapse.replication.tcp.handler
     level: CRITICAL
 
 matrix_synapse_additional_loggers_custom: []
@@ -1005,9 +1008,9 @@ matrix_synapse_redaction_retention_period: 7d
 matrix_synapse_user_ips_max_age: 28d
 
 
-matrix_synapse_rust_synapse_compress_state_docker_image: "{{ matrix_synapse_rust_synapse_compress_state_docker_image_name_prefix }}mb-saces/rust-synapse-compress-state:latest"
+matrix_synapse_rust_synapse_compress_state_docker_image: "{{ matrix_synapse_rust_synapse_compress_state_docker_image_name_prefix }}mb-saces/rust-synapse-tools:v0.0.1"
 matrix_synapse_rust_synapse_compress_state_docker_image_name_prefix: "registry.gitlab.com/"
-matrix_synapse_rust_synapse_compress_state_docker_image_force_pull: "{{ matrix_synapse_rust_synapse_compress_state_docker_image.endswith(':latest') }}"
+matrix_synapse_rust_synapse_compress_state_docker_image_force_pull: "{{ matrix_synapse_rust_synapse_compress_state_docker_image.endswith(':stable') or matrix_synapse_rust_synapse_compress_state_docker_image.endswith(':latest') }}"
 
 matrix_synapse_rust_synapse_compress_state_base_path: "{{ matrix_base_data_path }}/rust-synapse-compress-state"
 matrix_synapse_rust_synapse_compress_state_synapse_compress_state_in_container_path: "/usr/local/bin/synapse_compress_state"
