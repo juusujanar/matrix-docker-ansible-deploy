@@ -1,3 +1,31 @@
+# 2024-03-05
+
+## Support for Draupnir-for-all
+
+Thanks to [FSG-Cat](https://github.com/FSG-Cat), the playbook can now install [Draupnir for all](./docs/configuring-playbook-appservice-draupnir-for-all.md) (aka multi-instance Draupnir running in appservice mode).
+
+This is an alternative to [running Draupnir in bot mode](./docs/configuring-playbook-bot-draupnir.md), which is still supported by the playbook.
+
+The documentation page for [Draupnir for all](./docs/configuring-playbook-appservice-draupnir-for-all.md) contains more information on how to install it.
+
+
+# 2024-02-19
+
+## Support for bridging to Facebook/Messenger via the new mautrix-meta bridge
+
+The [mautrix-facebook](./docs/configuring-playbook-bridge-mautrix-facebook.md) and [mautrix-instagram](./docs/configuring-playbook-bridge-mautrix-instagram.md) bridges are being [superseded by a new bridge](https://github.com/mautrix/facebook/issues/332) - the [mautrix-meta](https://github.com/mautrix/meta) bridge.
+
+The playbook now supports the new mautrix-meta bridge - a single bridge, which can run in different modes and bridge to Messenger (via [Facebook](https://facebook.com/), Facebook over [Tor](https://www.torproject.org/) or via [Messenger](https://messenger.com/)) and [Instagram](https://instagram.com/). The playbook makes this bridge available via 2 separate Ansible roles, allowing you to easily run 2 instances of mautrix-meta, for bridging to both services at the same time.
+
+If you're using mautrix-facebook or mautrix-instagram right now, **you can still continue using the old bridges, but may wish to change to the new bridge implementations**. See:
+
+- [Setting up Instagram bridging via Mautrix Meta](docs/configuring-playbook-bridge-mautrix-meta-instagram.md)
+
+- [Setting up Messenger bridging via Mautrix Meta](docs/configuring-playbook-bridge-mautrix-meta-messenger.md)
+
+The documentation pages contain more information on how to migrate.
+
+
 # 2024-02-14
 
 ## Much larger Synapse caches and cache auto-tuning enabled by default
